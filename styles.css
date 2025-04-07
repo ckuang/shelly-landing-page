@@ -66,6 +66,7 @@ input[type="email"] {
     border-radius: 0;
     font-size: 1rem;
     width: 100%;
+    font-family: 'Lexend', sans-serif;
 }
 
 .submit-btn {
@@ -77,6 +78,7 @@ input[type="email"] {
     font-size: 1rem;
     cursor: pointer;
     transition: background-color 0.3s;
+    font-family: 'Lexend', sans-serif;
 }
 
 .submit-btn:hover {
