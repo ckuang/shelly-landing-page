@@ -6,8 +6,8 @@
 
 body {
     font-family: 'Lexend', sans-serif;
-    background-color: #7BA9A9;
-    color: #231F20;
+    background-color: #F5F5F5;
+    color: #1F2937;
     line-height: 1.6;
 }
 
@@ -25,7 +25,7 @@ header {
 .title {
     font-size: 2.5rem;
     font-weight: 700;
-    color: #231F20;
+    color: #4F46E5;
     margin-bottom: 20px;
 }
 
@@ -46,7 +46,7 @@ header {
 .caption {
     font-size: 1rem;
     text-align: center;
-    color: #5f6368;
+    color: #663399;
     max-width: 500px;
     margin: 0 auto;
 }
@@ -70,7 +70,7 @@ input[type="email"] {
 }
 
 .submit-btn {
-    background-color: #231F20;
+    background-color: #F59E0B;
     color: white;
     border: none;
     border-radius: 0;
@@ -82,7 +82,7 @@ input[type="email"] {
 }
 
 .submit-btn:hover {
-    background-color: #3a3536;
+    background-color: #D97706;
 }
 
 .coming-soon {
