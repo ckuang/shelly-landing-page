@@ -70,7 +70,7 @@ input[type="email"] {
 }
 
 .submit-btn {
-    background-color: rebeccapurple;
+    background-color: #4F46E5;
     color: white;
     border: none;
     border-radius: 0;
@@ -82,7 +82,7 @@ input[type="email"] {
 }
 
 .submit-btn:hover {
-    background-color: #663399;
+    background-color: #4338CA;
 }
 
 .coming-soon {
