@@ -85,6 +85,23 @@ input[type="email"] {
     background-color: #4338CA;
 }
 
+.success-message {
+    color: #059669;
+    font-size: 1.1rem;
+    text-align: center;
+    padding: 15px;
+    margin-top: 10px;
+    background-color: #ECFDF5;
+    border: 1px solid #10B981;
+    border-radius: 4px;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .coming-soon {
     font-size: 2.5rem;
     font-weight: 700;

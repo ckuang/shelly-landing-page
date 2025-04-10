@@ -26,12 +26,36 @@
                     Stay tuned to what we're building by subscribing below:
                 </p>
                 
-                <form class="email-form">
+                <form class="email-form" id="emailForm">
                     <input type="email" placeholder="Enter Your Email Address" required>
                     <button type="submit" class="submit-btn">Submit</button>
                 </form>
+                <div id="successMessage" class="success-message" style="display: none;">
+                    Thank you for subscribing! We'll keep you updated.
+                </div>
             </section>
         </main>
     </div>
+    
+    <script>
+        document.getElementById('emailForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Get the email input value
+            const email = this.querySelector('input[type="email"]').value;
+            
+            // Here you would typically send the email to your server
+            // For now, we'll just show the success message
+            
+            // Hide the form
+            this.style.display = 'none';
+            
+            // Show the success message
+            document.getElementById('successMessage').style.display = 'block';
+            
+            // Optional: Clear the form input
+            this.reset();
+        });
+    </script>
 </body>
 </html>
