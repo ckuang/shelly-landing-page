@@ -26,8 +26,8 @@
                     Stay tuned to what we're building by subscribing below:
                 </p>
                 
-                <form class="email-form" id="emailForm">
-                    <input type="email" placeholder="Enter Your Email Address" required>
+                <form class="email-form" id="emailForm" novalidate>
+                    <input type="email" placeholder="Enter Your Email Address" required id="emailInput">
                     <button type="submit" class="submit-btn">Submit</button>
                 </form>
                 <div id="successMessage" class="success-message" style="display: none;">
@@ -41,8 +41,24 @@
         document.getElementById('emailForm').addEventListener('submit', function(event) {
             event.preventDefault();
             
-            // Get the email input value
-            const email = this.querySelector('input[type="email"]').value;
+            // Get the email input element and value
+            const emailInput = document.getElementById('emailInput');
+            const email = emailInput.value;
+            
+            // Check if the email is valid
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(email)) {
+                // Show custom validation message in purple
+                emailInput.setCustomValidity("Please enter a valid email address");
+                emailInput.reportValidity();
+                
+                // Add custom styling
+                emailInput.style.borderColor = "#4F46E5";
+                
+                return;
+            } else {
+                emailInput.setCustomValidity("");
+            }
             
             // Here you would typically send the email to your server
             // For now, we'll just show the success message
@@ -55,6 +71,11 @@
             
             // Optional: Clear the form input
             this.reset();
+        });
+        
+        // Reset custom styling when user starts typing again
+        document.getElementById('emailInput').addEventListener('input', function() {
+            this.style.borderColor = "";
         });
     </script>
 </body>

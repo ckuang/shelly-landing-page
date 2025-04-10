@@ -69,6 +69,17 @@ input[type="email"] {
     font-family: 'Lexend', sans-serif;
 }
 
+input[type="email"]:invalid:focus {
+    border-color: #4F46E5;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+/* Custom validation message styling */
+input[type="email"]:invalid {
+    background-image: linear-gradient(to right, #EEF2FF, white);
+}
+
 .submit-btn {
     background-color: #4F46E5;
     color: white;
