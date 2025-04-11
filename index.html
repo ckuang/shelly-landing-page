@@ -26,11 +26,11 @@
                     Get updates on our launch — subscribe below!
                 </p>
                 
-                <form class="email-form" id="emailForm">
-                    <input type="email" placeholder="Enter Your Email Address" required>
+                <form class="email-form" id="email-form">
+                    <input type="email" id="email" placeholder="Enter Your Email Address" required>
                     <button type="submit" class="submit-btn">Submit</button>
                 </form>
-                <div id="successMessage" class="success-message" style="display: none;">
+                <div id="response-message" class="success-message" style="display: none;">
                     Thank you for subscribing! We'll keep you updated.
                 </div>
             </section>
@@ -38,23 +38,37 @@
     </div>
     
     <script>
-        document.getElementById('emailForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            
-            // Get the email input value
-            const email = this.querySelector('input[type="email"]').value;
-            
-            // Here you would typically send the email to your server
-            // For now, we'll just show the success message
-            
-            // Hide the form
-            this.style.display = 'none';
-            
-            // Show the success message
-            document.getElementById('successMessage').style.display = 'block';
-            
-            // Optional: Clear the form input
-            this.reset();
+        document.getElementById('email-form').addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          var email = document.getElementById('email').value;
+          var responseElement = document.getElementById('response-message');
+          
+          // Show loading message
+          responseElement.innerHTML = 'Submitting...';
+          responseElement.style.color = '#666';
+          responseElement.style.display = 'block';
+          
+          // Replace this URL with your Google Apps Script web app URL
+          var scriptURL = 'YOUR_GOOGLE_SCRIPT_WEB_APP_URL';
+          
+          // Send the data to Google Script
+          fetch(scriptURL + '?email=' + encodeURIComponent(email), {
+            method: 'GET',
+            mode: 'no-cors'
+          })
+          .then(function() {
+            // Success message (we can't actually read the response due to CORS)
+            responseElement.innerHTML = 'Thank you for subscribing!';
+            responseElement.style.color = '#4CAF50';
+            document.getElementById('email').value = '';
+          })
+          .catch(function(error) {
+            // Error message
+            responseElement.innerHTML = 'Something went wrong. Please try again.';
+            responseElement.style.color = '#F44336';
+            console.error('Error:', error);
+          });
         });
     </script>
 </body>
