@@ -28,7 +28,9 @@
                 
                 <form class="email-form" id="email-form">
                     <input type="email" id="email" placeholder="Enter Your Email Address" required>
-                    <button type="submit" class="submit-btn">Submit</button>
+                    <input type="hidden" id="session_id" name="session_id" value="">
+                    <input type="hidden" id="csrf_token" name="csrf_token" value="">
+                    <button type="submit" class="submit-btn" id="submit-button">Submit</button>
                 </form>
                 <div id="response-message" class="success-message" style="display: none;">
                     Thank you for subscribing! We'll keep you updated.
@@ -38,38 +40,176 @@
     </div>
     
     <script>
-        document.getElementById('email-form').addEventListener('submit', function(e) {
-          e.preventDefault();
+    // Replace this URL with your Google Apps Script web app URL
+    const scriptURL = 'https://script.google.com/a/macros/shelly.app/s/AKfycbyNE-3ka42V0bFmmkGDFnohBCWOJwdcaTC0byJhftdHOJ9KdB1qovrTuLLfOerZOixL/exec';
+    
+    // Get the current origin (your website domain)
+    const origin = window.location.origin;
+    
+    // Fallback to JSONP method if CORS fails
+    function initializeSessionJSONP() {
+      return new Promise((resolve, reject) => {
+        const responseElement = document.getElementById('response-message');
+        responseElement.innerHTML = 'Loading using alternative method...';
+        
+        // Create a unique callback name
+        const callbackName = 'jsonpCallback_' + Math.random().toString(36).substr(2, 9);
+        
+        // Define the callback function
+        window[callbackName] = function(response) {
+          if (response && response.sessionId && response.csrfToken) {
+            // Store session data in form fields
+            document.getElementById('session_id').value = response.sessionId;
+            document.getElementById('csrf_token').value = response.csrfToken;
+            
+            // Enable form
+            document.getElementById('submit-button').disabled = false;
+            responseElement.innerHTML = '';
+            resolve();
+          } else {
+            reject(new Error('Invalid JSONP response'));
+          }
           
-          var email = document.getElementById('email').value;
-          var responseElement = document.getElementById('response-message');
-          
-          // Show loading message
-          responseElement.innerHTML = 'Submitting...';
-          responseElement.style.color = '#666';
-          responseElement.style.display = 'block';
-          
-          // Replace this URL with your Google Apps Script web app URL
-          var scriptURL = 'https://script.google.com/a/macros/shelly.app/s/AKfycbyNE-3ka42V0bFmmkGDFnohBCWOJwdcaTC0byJhftdHOJ9KdB1qovrTuLLfOerZOixL/exec';
-          
-          // Send the data to Google Script
-          fetch(scriptURL + '?email=' + encodeURIComponent(email), {
+          // Clean up
+          document.head.removeChild(script);
+          delete window[callbackName];
+        };
+        
+        // Create script element for JSONP
+        const script = document.createElement('script');
+        script.src = `${scriptURL}?createSession=true&origin=${encodeURIComponent(origin)}&callback=${callbackName}`;
+        document.head.appendChild(script);
+        
+        // Set timeout to handle errors
+        setTimeout(() => {
+          responseElement.innerHTML = 'Could not load form. Please refresh the page.';
+          responseElement.style.color = '#F44336';
+          if (script.parentNode) document.head.removeChild(script);
+          delete window[callbackName];
+          reject(new Error('JSONP timeout'));
+        }, 5000);
+      });
+    }
+    
+    // Function to initialize a secure session
+    async function initializeSession() {
+      try {
+        // Set message while loading
+        const responseElement = document.getElementById('response-message');
+        responseElement.innerHTML = 'Loading...';
+        responseElement.style.color = '#666';
+        responseElement.style.display = 'block';
+        
+        // Disable form until session is established
+        document.getElementById('submit-button').disabled = true;
+        
+        // For debugging
+        console.log('Initializing session with origin:', origin);
+        
+        // First, do a CORS pre-flight check
+        try {
+          await fetch(`${scriptURL}?fetchOnly=true`, {
             method: 'GET',
-            mode: 'no-cors'
-          })
-          .then(function() {
-            // Success message (we can't actually read the response due to CORS)
-            responseElement.innerHTML = 'Thank you for subscribing!';
-            responseElement.style.color = '#4CAF50';
-            document.getElementById('email').value = '';
-          })
-          .catch(function(error) {
-            // Error message
-            responseElement.innerHTML = 'Something went wrong. Please try again.';
-            responseElement.style.color = '#F44336';
-            console.error('Error:', error);
+            mode: 'cors',
+            credentials: 'include'
           });
-        });
+        } catch (preflight_error) {
+          console.error('CORS preflight failed:', preflight_error);
+          // Continue anyway, the main request might still work
+        }
+        
+        // Create session with origin binding
+        console.log('Requesting session from:', `${scriptURL}?createSession=true&origin=${encodeURIComponent(origin)}`);
+        
+        let sessionResponse;
+        try {
+          sessionResponse = await fetch(`${scriptURL}?createSession=true&origin=${encodeURIComponent(origin)}`, {
+            method: 'GET',
+            mode: 'cors',
+            credentials: 'include'
+          });
+        } catch (fetch_error) {
+          console.error('Session fetch error:', fetch_error);
+          // Fall back to JSONP as a last resort
+          responseElement.innerHTML = 'Trying alternative connection method...';
+          return initializeSessionJSONP();
+        }
+        
+        // Parse response
+        let sessionData;
+        try {
+          sessionData = await sessionResponse.json();
+          console.log('Session response:', sessionData);
+        } catch (json_error) {
+          console.error('Failed to parse JSON response:', json_error);
+          throw new Error('Invalid server response');
+        }
+        
+        if (sessionData.result === 'error') {
+          throw new Error(sessionData.message || 'Failed to initialize session');
+        }
+        
+        // Store session data in form fields
+        document.getElementById('session_id').value = sessionData.sessionId;
+        document.getElementById('csrf_token').value = sessionData.csrfToken;
+        
+        // Enable form
+        document.getElementById('submit-button').disabled = false;
+        responseElement.innerHTML = '';
+        
+      } catch (error) {
+        console.error('Session initialization error:', error);
+        document.getElementById('response-message').innerHTML = 'Error initializing form. Please refresh and try again.';
+        document.getElementById('response-message').style.color = '#F44336';
+      }
+    }
+    
+    // Initialize session when page loads
+    document.addEventListener('DOMContentLoaded', initializeSession);
+    
+    // Handle form submission
+    document.getElementById('email-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const token = document.getElementById('csrf_token').value;
+      const sessionId = document.getElementById('session_id').value;
+      const responseElement = document.getElementById('response-message');
+      
+      // Verify we have session and token
+      if (!token || !sessionId) {
+        responseElement.innerHTML = 'Security session missing. Please refresh the page.';
+        responseElement.style.color = '#F44336';
+        return;
+      }
+      
+      // Show loading message
+      responseElement.innerHTML = 'Submitting...';
+      responseElement.style.color = '#666';
+      
+      // Send the data to Google Script with all security parameters
+      fetch(`${scriptURL}?email=${encodeURIComponent(email)}&csrf_token=${encodeURIComponent(token)}&session_id=${encodeURIComponent(sessionId)}&origin=${encodeURIComponent(origin)}`, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'include'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.result === 'success') {
+          responseElement.innerHTML = 'Thank you for subscribing!';
+          responseElement.style.color = '#4CAF50';
+          document.getElementById('email').value = '';
+        } else {
+          throw new Error(data.message || 'Submission failed');
+        }
+      })
+      .catch(function(error) {
+        // Error message
+        responseElement.innerHTML = 'Something went wrong. Please try again.';
+        responseElement.style.color = '#F44336';
+        console.error('Error:', error);
+      });
+    });
     </script>
 </body>
 </html>
