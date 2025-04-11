@@ -32,7 +32,7 @@
                     <input type="hidden" id="csrf_token" name="csrf_token" value="">
                     <button type="submit" class="submit-btn" id="submit-button">Submit</button>
                 </form>
-                <div id="response-message" class="success-message" style="display: none;">
+                <div id="response-message" class="success-message">
                     Thank you for subscribing! We'll keep you updated.
                 </div>
             </section>
@@ -40,135 +40,99 @@
     </div>
     
     <script>
-    // Replace this URL with your Google Apps Script web app URL
-    const scriptURL = 'https://script.google.com/a/macros/shelly.app/s/AKfycbyNE-3ka42V0bFmmkGDFnohBCWOJwdcaTC0byJhftdHOJ9KdB1qovrTuLLfOerZOixL/exec';
+    // 1. CONFIGURATION
+    // Replace with your Google Apps Script web app URL
+    const scriptURL = 'YOUR_GOOGLE_SCRIPT_WEB_APP_URL';
     
-    // Get the current origin (your website domain)
+    // Get the current origin
     const origin = window.location.origin;
     
-    // Fallback to JSONP method if CORS fails
-    function initializeSessionJSONP() {
+    // 2. JSONP HELPER FUNCTIONS
+    // Function to load data via JSONP
+    function loadJSONP(url, callback) {
       return new Promise((resolve, reject) => {
-        const responseElement = document.getElementById('response-message');
-        responseElement.innerHTML = 'Loading using alternative method...';
-        
         // Create a unique callback name
-        const callbackName = 'jsonpCallback_' + Math.random().toString(36).substr(2, 9);
+        const callbackName = 'jsonp_callback_' + Math.random().toString(36).substr(2, 9);
         
-        // Define the callback function
-        window[callbackName] = function(response) {
-          if (response && response.sessionId && response.csrfToken) {
-            // Store session data in form fields
-            document.getElementById('session_id').value = response.sessionId;
-            document.getElementById('csrf_token').value = response.csrfToken;
-            
-            // Enable form
-            document.getElementById('submit-button').disabled = false;
-            responseElement.innerHTML = '';
-            resolve();
-          } else {
-            reject(new Error('Invalid JSONP response'));
-          }
-          
+        // Set up the callback function that the JSONP response will call
+        window[callbackName] = function(data) {
+          resolve(data);
           // Clean up
           document.head.removeChild(script);
           delete window[callbackName];
         };
         
-        // Create script element for JSONP
+        // Create the script element to make the JSONP request
         const script = document.createElement('script');
-        script.src = `${scriptURL}?createSession=true&origin=${encodeURIComponent(origin)}&callback=${callbackName}`;
-        document.head.appendChild(script);
         
-        // Set timeout to handle errors
-        setTimeout(() => {
-          responseElement.innerHTML = 'Could not load form. Please refresh the page.';
-          responseElement.style.color = '#F44336';
+        // Add callback parameter to the URL
+        const separator = url.indexOf('?') !== -1 ? '&' : '?';
+        script.src = `${url}${separator}callback=${callbackName}`;
+        
+        // Handle errors
+        script.onerror = () => {
+          reject(new Error('JSONP request failed'));
+          document.head.removeChild(script);
+          delete window[callbackName];
+        };
+        
+        // Set timeout to handle hanging requests
+        const timeoutId = setTimeout(() => {
+          reject(new Error('JSONP request timed out'));
           if (script.parentNode) document.head.removeChild(script);
           delete window[callbackName];
-          reject(new Error('JSONP timeout'));
-        }, 5000);
+        }, 10000);
+        
+        // Add the script to the document to start the request
+        document.head.appendChild(script);
       });
     }
     
+    // 3. SESSION INITIALIZATION
     // Function to initialize a secure session
     async function initializeSession() {
+      const responseElement = document.getElementById('response-message');
+      
       try {
-        // Set message while loading
-        const responseElement = document.getElementById('response-message');
+        // Show loading message
         responseElement.innerHTML = 'Loading...';
         responseElement.style.color = '#666';
-        responseElement.style.display = 'block';
         
         // Disable form until session is established
         document.getElementById('submit-button').disabled = true;
         
-        // For debugging
-        console.log('Initializing session with origin:', origin);
+        // Create JSONP URL to request a new session
+        const sessionUrl = `${scriptURL}?createSession=true&origin=${encodeURIComponent(origin)}`;
         
-        // First, do a CORS pre-flight check
-        try {
-          await fetch(`${scriptURL}?fetchOnly=true`, {
-            method: 'GET',
-            mode: 'cors',
-            credentials: 'include'
-          });
-        } catch (preflight_error) {
-          console.error('CORS preflight failed:', preflight_error);
-          // Continue anyway, the main request might still work
+        // Make the JSONP request
+        console.log('Requesting session...');
+        const response = await loadJSONP(sessionUrl);
+        console.log('Session response:', response);
+        
+        // Check for errors
+        if (response.result === 'error') {
+          throw new Error(response.message || 'Failed to create session');
         }
         
-        // Create session with origin binding
-        console.log('Requesting session from:', `${scriptURL}?createSession=true&origin=${encodeURIComponent(origin)}`);
+        // Store the session data in the form
+        document.getElementById('session_id').value = response.sessionId;
+        document.getElementById('csrf_token').value = response.csrfToken;
         
-        let sessionResponse;
-        try {
-          sessionResponse = await fetch(`${scriptURL}?createSession=true&origin=${encodeURIComponent(origin)}`, {
-            method: 'GET',
-            mode: 'cors',
-            credentials: 'include'
-          });
-        } catch (fetch_error) {
-          console.error('Session fetch error:', fetch_error);
-          // Fall back to JSONP as a last resort
-          responseElement.innerHTML = 'Trying alternative connection method...';
-          return initializeSessionJSONP();
-        }
-        
-        // Parse response
-        let sessionData;
-        try {
-          sessionData = await sessionResponse.json();
-          console.log('Session response:', sessionData);
-        } catch (json_error) {
-          console.error('Failed to parse JSON response:', json_error);
-          throw new Error('Invalid server response');
-        }
-        
-        if (sessionData.result === 'error') {
-          throw new Error(sessionData.message || 'Failed to initialize session');
-        }
-        
-        // Store session data in form fields
-        document.getElementById('session_id').value = sessionData.sessionId;
-        document.getElementById('csrf_token').value = sessionData.csrfToken;
-        
-        // Enable form
+        // Enable the form
         document.getElementById('submit-button').disabled = false;
         responseElement.innerHTML = '';
         
       } catch (error) {
+        // Handle errors
         console.error('Session initialization error:', error);
-        document.getElementById('response-message').innerHTML = 'Error initializing form. Please refresh and try again.';
-        document.getElementById('response-message').style.color = '#F44336';
+        responseElement.innerHTML = 'Error loading form. Please refresh and try again.';
+        responseElement.style.color = '#F44336';
       }
     }
     
-    // Initialize session when page loads
-    document.addEventListener('DOMContentLoaded', initializeSession);
-    
+    // 4. FORM SUBMISSION
     // Handle form submission
-    document.getElementById('email-form').addEventListener('submit', function(e) {
+    document.getElementById('email-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       
       const email = document.getElementById('email').value;
@@ -187,29 +151,33 @@
       responseElement.innerHTML = 'Submitting...';
       responseElement.style.color = '#666';
       
-      // Send the data to Google Script with all security parameters
-      fetch(`${scriptURL}?email=${encodeURIComponent(email)}&csrf_token=${encodeURIComponent(token)}&session_id=${encodeURIComponent(sessionId)}&origin=${encodeURIComponent(origin)}`, {
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'include'
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.result === 'success') {
+      try {
+        // Create JSONP URL for submission
+        const submitUrl = `${scriptURL}?email=${encodeURIComponent(email)}&csrf_token=${encodeURIComponent(token)}&session_id=${encodeURIComponent(sessionId)}&origin=${encodeURIComponent(origin)}`;
+        
+        // Submit via JSONP
+        const response = await loadJSONP(submitUrl);
+        console.log('Submission response:', response);
+        
+        // Handle response
+        if (response.result === 'success') {
           responseElement.innerHTML = 'Thank you for subscribing!';
           responseElement.style.color = '#4CAF50';
           document.getElementById('email').value = '';
         } else {
-          throw new Error(data.message || 'Submission failed');
+          throw new Error(response.message || 'Submission failed');
         }
-      })
-      .catch(function(error) {
-        // Error message
+      } catch (error) {
+        // Handle errors
+        console.error('Submission error:', error);
         responseElement.innerHTML = 'Something went wrong. Please try again.';
         responseElement.style.color = '#F44336';
-        console.error('Error:', error);
-      });
+      }
     });
+    
+    // 5. INITIALIZE
+    // Initialize session when page loads
+    document.addEventListener('DOMContentLoaded', initializeSession);
     </script>
 </body>
 </html>
