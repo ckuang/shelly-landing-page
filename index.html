@@ -94,10 +94,6 @@
       const responseElement = document.getElementById('response-message');
       
       try {
-        // Show loading message
-        responseElement.innerHTML = 'Loading...';
-        responseElement.style.color = '#666';
-        
         // Disable form until session is established
         document.getElementById('submit-button').disabled = true;
         
@@ -105,9 +101,7 @@
         const sessionUrl = `${scriptURL}?createSession=true&origin=${encodeURIComponent(origin)}`;
         
         // Make the JSONP request
-        console.log('Requesting session...');
         const response = await loadJSONP(sessionUrl);
-        console.log('Session response:', response);
         
         // Check for errors
         if (response.result === 'error') {
@@ -119,14 +113,9 @@
         document.getElementById('csrf_token').value = response.csrfToken;
         
         // Enable the form
-        document.getElementById('submit-button').disabled = false;
-        responseElement.innerHTML = '';
-        
+        document.getElementById('submit-button').disabled = false;    
       } catch (error) {
-        // Handle errors
-        console.error('Session initialization error:', error);
-        responseElement.innerHTML = 'Error loading form. Please refresh and try again.';
-        responseElement.style.color = '#F44336';
+        console.log("failed to initialize session.")
       }
     }
     
@@ -142,14 +131,8 @@
       
       // Verify we have session and token
       if (!token || !sessionId) {
-        responseElement.innerHTML = 'Security session missing. Please refresh the page.';
-        responseElement.style.color = '#F44336';
         return;
       }
-      
-      // Show loading message
-      responseElement.innerHTML = 'Submitting...';
-      responseElement.style.color = '#666';
       
       try {
         // Create JSONP URL for submission
@@ -157,21 +140,17 @@
         
         // Submit via JSONP
         const response = await loadJSONP(submitUrl);
-        console.log('Submission response:', response);
         
         // Handle response
         if (response.result === 'success') {
           responseElement.innerHTML = 'Thank you for subscribing!';
-          responseElement.style.color = '#4CAF50';
           document.getElementById('email').value = '';
         } else {
           throw new Error(response.message || 'Submission failed');
         }
       } catch (error) {
         // Handle errors
-        console.error('Submission error:', error);
-        responseElement.innerHTML = 'Something went wrong. Please try again.';
-        responseElement.style.color = '#F44336';
+        console.error("Submission failed")
       }
     });
     
