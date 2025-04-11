@@ -134,21 +134,20 @@
         return;
       }
       
+      // Immediately hide the form and show success message
+      document.getElementById('email-form').style.display = 'none';
+      responseElement.style.display = 'block';
+      
       try {
         // Create JSONP URL for submission
         const submitUrl = `${scriptURL}?email=${encodeURIComponent(email)}&csrf_token=${encodeURIComponent(token)}&session_id=${encodeURIComponent(sessionId)}&origin=${encodeURIComponent(origin)}`;
         
-        // Submit via JSONP
+        // Submit via JSONP (in background)
         const response = await loadJSONP(submitUrl);
         
-        // Handle response
-        if (response.result === 'success') {
-          // Hide the form
-          document.getElementById('email-form').style.display = 'none';
-          // Show the success message
-          responseElement.style.display = 'block';
-        } else {
-          throw new Error(response.message || 'Submission failed');
+        // Handle response errors silently
+        if (response.result !== 'success') {
+          console.error(response.message || 'Submission failed');
         }
       } catch (error) {
         // Handle errors
