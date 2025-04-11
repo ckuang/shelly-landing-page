@@ -32,7 +32,7 @@
                     <input type="hidden" id="csrf_token" name="csrf_token" value="">
                     <button type="submit" class="submit-btn" id="submit-button">Submit</button>
                 </form>
-                <div id="response-message" class="success-message">
+                <div id="response-message" class="success-message" style="display: none;">
                     Thank you for subscribing! We'll keep you updated.
                 </div>
             </section>
@@ -143,8 +143,10 @@
         
         // Handle response
         if (response.result === 'success') {
-          responseElement.innerHTML = 'Thank you for subscribing!';
-          document.getElementById('email').value = '';
+          // Hide the form
+          document.getElementById('email-form').style.display = 'none';
+          // Show the success message
+          responseElement.style.display = 'block';
         } else {
           throw new Error(response.message || 'Submission failed');
         }
